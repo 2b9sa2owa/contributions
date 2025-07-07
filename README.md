@@ -21,7 +21,7 @@ This Node.js script makes automated commits with custom dates to simulate GitHub
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/your-repo.git
+   git clone git@github.com:2b9sa2owa/contributions.git
    cd your-repo
    ```
 
@@ -64,3 +64,8 @@ Git is then used to:
 
 > This tool is meant for educational, fun, or aesthetic purposes only.  
 > Avoid using it to misrepresent your actual contributions.
+
+## Other links
+
+- [YouTube Video](https://www.youtube.com/watch?v=LlkcvvGbs9I)
+- [goGreen GitHub Repository](https://github.com/fenrir2608/goGreen)
