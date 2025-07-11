@@ -5,9 +5,10 @@ This Node.js script makes automated commits with custom dates to simulate GitHub
 ## Features
 
 - Generates backdated commits over the past year
-- Uses random distribution for realistic commit spread
+- Randomizes commit times down to the second for realism
+- Supports daily, weekly, and yearly commit patterns
 - Automatically pushes to your GitHub repository
-- Customizable number of commits
+- Customizable number of commits for each pattern
 
 ## Requirements
 
@@ -22,7 +23,7 @@ This Node.js script makes automated commits with custom dates to simulate GitHub
 
    ```bash
    git clone git@github.com:2b9sa2owa/contributions.git
-   cd your-repo
+   cd contributions
    ```
 
 2. Install dependencies:
@@ -33,26 +34,34 @@ This Node.js script makes automated commits with custom dates to simulate GitHub
 
 ## Usage
 
-3. Run the script with:
+Run the script with:
 
-    ```bash
-    node index.js
-    ```
+```bash
+node index.js
+```
+
+The script will:
+- Generate a configurable number of commits for a random day, week, and year in the past
+- Randomize the hour, minute, and second for each commit
+- Write a timestamp to `data.json`
+- Stage, commit (with a custom `--date`), and push to your repository
 
 ## File Overview
 
 - **`data.json`** – Temporary file used for commits
 - **`index.js`** – Main script that:
-  - Generates random dates
+  - Generates random dates and times
   - Writes to `data.json`
   - Commits with `--date`
   - Pushes to the repository
 
 ## How It Works
 
-- Random week (`x`) and day (`y`) are chosen from the past year
-- A formatted date string is generated with `moment`
-- That date is written to `data.json`
+- For daily commits: Random hour, minute, and second are chosen for each commit on a specific day
+- For monthly/weekly commits: Random week and day are chosen from the past year
+- For yearly commits: Random week and day are chosen, spread throughout the year
+- Dates are formatted using `moment`
+- Each commit is made with a custom timestamp for realistic contribution graphs
 
 Git is then used to:
 
