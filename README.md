@@ -86,6 +86,11 @@ TICKET: 123 - revising function, Alice Smith during Monday, July 8, 2024
 > This tool is meant for educational, fun, or aesthetic purposes only.  
 > Avoid using it to misrepresent your actual contributions.
 
+## Credits & License
+
+- Code inspiration and logic adapted from **Harsh Mehta** [fenrir2608/goGreen](https://github.com/fenrir2608/goGreen/tree/main)
+- Feel free to use my code and ask me any questions, just drop any suugestions or merge requests etc to this branch and I will look at it when I have a moment.
+
 ## Other links
 
 - [YouTube Video](https://www.youtube.com/watch?v=LlkcvvGbs9I)
