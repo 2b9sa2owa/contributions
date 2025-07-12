@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/2b9sa2owa/contributions#readme",
   "dependencies": {
+    "casual": "^1.6.2",
     "jsonfile": "^6.1.0",
     "moment": "^2.30.1",
     "random": "^5.4.0",
