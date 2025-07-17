@@ -22,9 +22,9 @@ function getArg(index, fallback) {
 }
 
 // Allow user to override these via CLI: node index.js [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset]
-const numberOfDayCommits = getArg(0, 3);
-const numberOfMonthCommits = getArg(1, 3);
-const numberOfYearCommits = getArg(2, 3);
+const numberOfDayCommits = getArg(0, 7);
+const numberOfMonthCommits = getArg(1, 14);
+const numberOfYearCommits = getArg(2, 21);
 const dayOffset = getArg(3, random.int(0, 364));
 const weekOffset = getArg(4, random.int(0, 51));
 
