@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "preview": "TESTMODE=true node index.js",
+    "help": "cat README.md"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# GitHub Contributions Script Wrapper
+# Usage: ./contrib [command] [args...]
+# Commands: start, preview, help
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+case "$1" in
+  preview)
+    cd "$SCRIPT_DIR" && npm run preview -- "${@:2}"
+    ;;
+  help)
+    cd "$SCRIPT_DIR" && npm run help
+    ;;
+  start|"")
+    cd "$SCRIPT_DIR" && npm start -- "${@:2}"
+    ;;
+  *)
+    cd "$SCRIPT_DIR" && npm start -- "$@"
+    ;;
+esac

@@ -11,6 +11,8 @@ import moment from "moment";
 import simpleGit from "simple-git";
 import random from "random";
 import casual from "casual";
+import readline from "readline";
+import fs from "fs";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -26,9 +28,9 @@ function getArg(index, fallback) {
 }
 
 // Allow user to override these via CLI: node index.js [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset] [startDate]
-const numberOfDayCommits = getArg(0, parseInt(process.env.DAY_COMMITS) || 7);
-const numberOfMonthCommits = getArg(1, parseInt(process.env.MONTH_COMMITS) || 14);
-const numberOfYearCommits = getArg(2, parseInt(process.env.YEAR_COMMITS) || 21);
+const numberOfDayCommits = getArg(0, process.env.DAY_COMMITS !== undefined && !isNaN(parseInt(process.env.DAY_COMMITS)) ? parseInt(process.env.DAY_COMMITS) : 7);
+const numberOfMonthCommits = getArg(1, process.env.MONTH_COMMITS !== undefined && !isNaN(parseInt(process.env.MONTH_COMMITS)) ? parseInt(process.env.MONTH_COMMITS) : 14);
+const numberOfYearCommits = getArg(2, process.env.YEAR_COMMITS !== undefined && !isNaN(parseInt(process.env.YEAR_COMMITS)) ? parseInt(process.env.YEAR_COMMITS) : 21);
 const dayOffset = args[3] !== undefined && !isNaN(Number(args[3])) 
   ? Number(args[3]) 
   : (process.env.DAY_OFFSET ? parseInt(process.env.DAY_OFFSET) : random.int(0, 364));
@@ -99,8 +101,86 @@ const when = [
 ];
 
 // -----------------------------
-// Helper Functions
+// Validation and Safety Functions
 // -----------------------------
+
+/**
+ * Validates that this is a valid git repository with a remote origin.
+ * @throws {Error} If .git directory doesn't exist or no remote origin is configured
+ */
+async function validateGitRepository() {
+  if (!fs.existsSync(".git")) {
+    throw new Error("Not a git repository. .git directory not found.")
+  }
+
+  try {
+    const remotes = await git.getRemotes(true);
+    if (!remotes || remotes.length === 0) {
+      throw new Error("No git remote origin configured. Please set up a remote: git remote add origin <url>");
+    }
+  } catch (err) {
+    throw new Error(`Error checking git remote: ${err.message}`);
+  }
+}
+
+/**
+ * Validates the start date is not in the future.
+ * @throws {Error} If start date is after today
+ */
+function validateStartDate() {
+  const today = moment().startOf('day');
+  
+  if (startDate.isAfter(today)) {
+    throw new Error("Start date cannot be in the future. Please use a date on or before today.");
+  }
+}
+
+/**
+ * Displays a summary of what will be created.
+ */
+function displayConfigurationSummary() {
+  const today = moment();
+  const totalCommits = numberOfDayCommits + numberOfMonthCommits + numberOfYearCommits;
+  const daysSpanned = Math.floor(today.diff(startDate, "days"));
+  
+  console.log("\n" + "=".repeat(60));
+  console.log("CONFIGURATION SUMMARY");
+  console.log("=".repeat(60));
+  console.log(`Start Date:        ${startDate.format("YYYY-MM-DD")}`);
+  console.log(`End Date:          ${today.format("YYYY-MM-DD")}`);
+  console.log(`Days Spanned:      ${daysSpanned} days (~${Math.floor(daysSpanned / 365)} years)`);
+  console.log(`\nCommit Breakdown:`);
+  console.log(`  • Daily commits:   ${numberOfDayCommits} commits on day ${startDate.format("YYYY-MM-DD")} + ${dayOffset} days`);
+  console.log(`  • Monthly commits: ${numberOfMonthCommits} commits in week ${startDate.format("YYYY-MM-DD")} + ${weekOffset} weeks`);
+  console.log(`  • Yearly commits:  ${numberOfYearCommits} commits spread across the date range`);
+  console.log(`\nTotal Commits:     ${totalCommits}`);
+  console.log(`Test Mode:         ${testMode ? "ENABLED" : "Disabled"}`);
+  console.log("=".repeat(60) + "\n");
+}
+
+/**
+ * Prompts user for confirmation before running (unless in test mode).
+ * @returns {Promise<boolean>} True if user confirms, false otherwise
+ */
+async function confirmBeforeRunning() {
+  if (testMode) {
+    console.log("Test mode enabled - skipping confirmation prompt.\n");
+    return true;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question("Proceed with creating commits? (y/n) ", (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === "y");
+    });
+  });
+}
+
 
 /**
  * Generates a random, realistic commit message with a date.
@@ -278,15 +358,34 @@ async function makeCommitsYear(n, baseDate) {
  * Each function generates and pushes commits for a different pattern.
  */
 async function main() {
-  if (testMode) {
-    console.log("TEST MODE ENABLED - No git operations will be performed");
-  }
   try {
+    // Step 1: Validate git repository (unless in test mode)
+    if (!testMode) {
+      await validateGitRepository();
+    }
+
+    // Step 2: Validate start date
+    validateStartDate();
+
+    // Step 3: Display configuration summary
+    displayConfigurationSummary();
+
+    // Step 4: Ask for confirmation (unless in test mode)
+    const confirmed = await confirmBeforeRunning();
+    if (!confirmed) {
+      console.log("Operation cancelled.");
+      process.exit(0);
+    }
+
+    // Step 5: Run commit generators
     await makeCommitsDay(numberOfDayCommits, dayOffset, startDate);
     await makeCommitsMonth(numberOfMonthCommits, weekOffset, startDate);
     await makeCommitsYear(numberOfYearCommits, startDate);
+
+    console.log("\nCommit generation completed successfully!");
   } catch (err) {
-    console.error("Error during commit process:", err);
+    console.error("Error:", err.message);
+    process.exit(1);
   }
 }
 

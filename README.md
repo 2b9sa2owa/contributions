@@ -59,26 +59,97 @@ This Node.js script makes automated, backdated commits with custom messages and 
 
 ## Usage
 
-You can run the script with default values:
+### Using the `contrib` wrapper script (Easiest)
+
+A `contrib` wrapper script is included in the repository. Make it executable and use it from anywhere:
 
 ```bash
+# Make the script executable (one time only)
+# From the repository directory:
+chmod +x contrib
+
+# Or using the full path:
+chmod +x ~/git/contributions/contrib
+
+# Run with defaults
+./contrib
+
+# Preview commits (test mode)
+./contrib preview
+
+# View help
+./contrib help
+
+# Pass arguments
+./contrib 5 2 10 100 20 2025-01-01
+```
+
+**For system-wide access**, add the script to your PATH or create an alias (see below).
+
+### Setup shell aliases (Optional)
+
+Add one or more of these aliases to your `.bashrc`, `.zshrc`, or shell config file:
+
+```bash
+# First, make the script executable (one time only):
+chmod +x ~/git/contributions/contrib
+
+# Then add the alias:
+alias contrib="~/git/contributions/contrib"
+
+# Or if you prefer npm commands:
+alias contrib="npm --prefix ~/git/contributions start"
+alias contrib:preview="npm --prefix ~/git/contributions run preview"
+alias contrib:help="npm --prefix ~/git/contributions run help"
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc  # or source ~/.zshrc for zsh
+```
+
+Now you can use:
+```bash
+contrib
+contrib preview
+contrib 5 2 10 100 20 2025-01-01
+```
+
+### Using npm scripts
+
+```bash
+# Run with default configuration
+npm start
+
+# Preview commits without making changes (test mode)
+npm run preview
+
+# View this README
+npm run help
+```
+
+You can also pass additional arguments to override defaults:
+
+```bash
+npm start -- 5 2 10 100 20 2025-01-01
+# npm start -- [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset] [startDate]
+```
+
+### Using node directly
+
+```bash
+# Run with default values
 node index.js
-```
 
-Or override the number of commits and offsets via command-line arguments (takes precedence over `.env`):
-
-```bash
+# Override values via command-line arguments
 node index.js [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset] [startDate]
-```
 
-**Precedence order:** Command-line arguments > `.env` file > Built-in defaults
-
-**Example:**
-
-```bash
+# Example
 node index.js 5 2 10 100 20 2025-01-01
 # 5 day commits, 2 month commits, 10 year commits, dayOffset=100, weekOffset=20, starting from 2025-01-01
 ```
+
+**Precedence order:** Command-line arguments > `.env` file > Built-in defaults
 
 **Defaults:** If you omit arguments, the following defaults will be used:
 - `dayCommits`: 7 (7 commits all on the same day, each at a different random time)
@@ -96,6 +167,42 @@ node index.js 5 2 10 100 20 2025-01-01
 - **Commit messages:** Each commit message is generated using the `casual` library, combining random names, actions, and ticket numbers for realism.
 - **Commit process:** For each commit, the script writes a timestamp to `data.json`, stages the file, commits with a custom message and `--date`, and pushes to the repository.
 - **Error handling:** Each git operation is wrapped in try/catch blocks for robust error reporting.
+
+## Safety & Validation
+
+The script includes several safety features to prevent accidental misuse:
+
+1. **Git Repository Validation** - Checks that you're in a valid git repository with a configured remote origin before proceeding
+2. **Configuration Summary** - Displays a summary of what will be created including:
+   - Start and end dates
+   - Total days spanned
+   - Breakdown of commits (daily, monthly, yearly)
+   - Test mode status
+3. **Confirmation Prompt** - Asks you to confirm before creating commits (skipped in test mode)
+4. **Start Date Validation** - Prevents start dates in the future
+5. **Test Mode** - Preview your commits without actually modifying the repository
+
+When you run the script in production mode, you'll see output like:
+
+```
+============================================================
+CONFIGURATION SUMMARY
+============================================================
+Start Date:        2021-02-15
+End Date:          2026-02-15
+Days Spanned:      1826 days (~5 years)
+
+Commit Breakdown:
+  • Daily commits:   7 commits on day 2021-02-15 + 100 days
+  • Monthly commits: 14 commits in week 2021-02-15 + 10 weeks
+  • Yearly commits:  21 commits spread across the date range
+
+Total Commits:     42
+Test Mode:         Disabled
+============================================================
+
+? Proceed with creating commits? (y/N)
+```
 
 ## File Overview
 
