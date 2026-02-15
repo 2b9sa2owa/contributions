@@ -10,6 +10,7 @@ This Node.js script makes automated, backdated commits with custom messages and 
 - Automatically stages, commits (with custom messages and dates), and pushes to your GitHub repository
 - Customizable number of commits and offsets for each pattern via command-line arguments
 - Generates realistic commit messages using the [casual](https://www.npmjs.com/package/casual) library
+- Displays commit statistics at the end showing total commits and date range
 
 ## Requirements
 
@@ -201,7 +202,82 @@ Total Commits:     42
 Test Mode:         Disabled
 ============================================================
 
-? Proceed with creating commits? (y/N)
+? Proceed with creating commits? (y/n) y
+
+============================================================
+COMMIT STATISTICS
+============================================================
+Total Commits Created: 42
+Date Range:           2021-02-15 to 2026-02-15
+Days Spanned:         1826 days (~5 years)
+Average per Day:      0.02
+============================================================
+
+Commit generation completed successfully!
+```
+
+## Local Backup with Post-Commit Hook
+
+This repository includes a `post-commit` git hook that automatically backs up changed files to a remote server after each commit. This is useful for maintaining a distributed backup of your work.
+
+### Setup
+
+1. **Configure git to use the hooks directory:**
+
+   ```bash
+   git config core.hooksPath .githooks
+   chmod +x .githooks/post-commit
+   ```
+
+2. **Add backup configuration to `.env`:**
+
+   The hook requires the following environment variables in your `.env` file:
+
+   ```bash
+   BACKUP_USER="your-ssh-username"
+   BACKUP_SERVER="backup-server-ip-or-domain"
+   BACKUP_PATH="/path/to/backup/destination"
+   BACKUP_PASSWORD="your-ssh-password"
+   ```
+
+   These credentials are not committed to the repository (`.env` is git-ignored), so they remain secure.
+
+3. **Install `sshpass` (if not already installed):**
+
+   The hook uses `sshpass` to enable non-interactive SSH authentication. Install it on your system:
+
+   ```bash
+   # macOS
+   brew install sshpass
+
+   # Ubuntu/Debian
+   sudo apt-get install sshpass
+
+   # CentOS/RHEL
+   sudo yum install sshpass
+   ```
+
+### How It Works
+
+After each commit, the hook:
+1. Loads environment variables from `.env`
+2. Gets the list of files changed in the last commit
+3. Backs up each changed file to the remote server using SCP
+
+**Important:** This hook runs **only locally** on your machine. GitHub and other remote repositories do not execute client-side hooks. It's safe to commit this hook to your repository.
+
+### Disabling the Hook
+
+If you want to make commits without backing up, you can temporarily skip the hook:
+
+```bash
+git commit --no-verify
+```
+
+Or permanently disable it:
+
+```bash
+git config core.hooksPath ""
 ```
 
 ## File Overview
