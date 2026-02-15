@@ -110,16 +110,64 @@ const when = [
  */
 async function validateGitRepository() {
   if (!fs.existsSync(".git")) {
-    throw new Error("Not a git repository. .git directory not found.")
+    throw new Error(
+      "This directory is not a git repository.\n" +
+      "Please run this script from the root of your git repository.\n" +
+      "To initialize a new repository, run: git init"
+    );
   }
 
   try {
     const remotes = await git.getRemotes(true);
     if (!remotes || remotes.length === 0) {
-      throw new Error("No git remote origin configured. Please set up a remote: git remote add origin <url>");
+      throw new Error(
+        "No remote origin configured for this repository.\n" +
+        "Please add a remote origin:\n" +
+        "  git remote add origin <repository-url>\n" +
+        "Example: git remote add origin git@github.com:username/repo.git"
+      );
     }
   } catch (err) {
-    throw new Error(`Error checking git remote: ${err.message}`);
+    if (err.message.includes("No remote origin")) {
+      throw err;
+    }
+    throw new Error(
+      "Failed to check git configuration.\n" +
+      "Make sure git is properly installed and configured.\n" +
+      `Details: ${err.message}`
+    );
+  }
+}
+
+/**
+ * Validates configuration values are within acceptable ranges.
+ * @throws {Error} If values are invalid
+ */
+function validateConfigurationValues() {
+  const errors = [];
+
+  if (numberOfDayCommits < 0) {
+    errors.push("DAY_COMMITS cannot be negative");
+  }
+  if (numberOfMonthCommits < 0) {
+    errors.push("MONTH_COMMITS cannot be negative");
+  }
+  if (numberOfYearCommits < 0) {
+    errors.push("YEAR_COMMITS cannot be negative");
+  }
+  if (dayOffset < 0) {
+    errors.push("DAY_OFFSET cannot be negative");
+  }
+  if (weekOffset < 0) {
+    errors.push("WEEK_OFFSET cannot be negative");
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      "Invalid configuration values:\n" +
+      errors.map(e => `  - ${e}`).join("\n") +
+      "\n\nPlease check your .env file or command-line arguments."
+    );
   }
 }
 
@@ -131,7 +179,21 @@ function validateStartDate() {
   const today = moment().startOf('day');
   
   if (startDate.isAfter(today)) {
-    throw new Error("Start date cannot be in the future. Please use a date on or before today.");
+    throw new Error(
+      "Start date cannot be in the future.\n" +
+      `You provided: ${startDate.format("YYYY-MM-DD")}\n` +
+      "Today is: " + today.format("YYYY-MM-DD") + "\n" +
+      "Please use a date on or before today (format: YYYY-MM-DD)."
+    );
+  }
+  
+  // Warn if start date is very old (more than 10 years)
+  const tenYearsAgo = moment().subtract(10, 'y');
+  if (startDate.isBefore(tenYearsAgo)) {
+    console.warn(
+      "Warning: Start date is more than 10 years in the past.\n" +
+      `Creating many commits (${numberOfDayCommits + numberOfMonthCommits + numberOfYearCommits}) over a very long period may take significant time.`
+    );
   }
 }
 
@@ -159,9 +221,24 @@ function displayConfigurationSummary() {
 }
 
 /**
- * Prompts user for confirmation before running (unless in test mode).
- * @returns {Promise<boolean>} True if user confirms, false otherwise
+ * Displays a summary of commits that were created.
  */
+function displayCommitStatistics() {
+  const today = moment();
+  const totalCommits = numberOfDayCommits + numberOfMonthCommits + numberOfYearCommits;
+  const daysSpanned = Math.floor(today.diff(startDate, "days"));
+  
+  console.log("\n" + "=".repeat(60));
+  console.log("COMMIT STATISTICS");
+  console.log("=".repeat(60));
+  console.log(`Total Commits Created: ${totalCommits}`);
+  console.log(`Date Range:           ${startDate.format("YYYY-MM-DD")} to ${today.format("YYYY-MM-DD")}`);
+  console.log(`Days Spanned:         ${daysSpanned} days (~${Math.floor(daysSpanned / 365)} years)`);
+  console.log(`Average per Day:      ${(totalCommits / Math.max(daysSpanned, 1)).toFixed(2)}`);
+  console.log("=".repeat(60) + "\n");
+}
+
+
 async function confirmBeforeRunning() {
   if (testMode) {
     console.log("Test mode enabled - skipping confirmation prompt.\n");
@@ -359,32 +436,45 @@ async function makeCommitsYear(n, baseDate) {
  */
 async function main() {
   try {
-    // Step 1: Validate git repository (unless in test mode)
-    if (!testMode) {
-      await validateGitRepository();
-    }
+    // Step 1: Validate configuration values
+    validateConfigurationValues();
 
     // Step 2: Validate start date
     validateStartDate();
 
-    // Step 3: Display configuration summary
+    // Step 3: Validate git repository (unless in test mode)
+    if (!testMode) {
+      await validateGitRepository();
+    }
+
+    // Step 4: Display configuration summary
     displayConfigurationSummary();
 
-    // Step 4: Ask for confirmation (unless in test mode)
+    // Step 5: Ask for confirmation (unless in test mode)
     const confirmed = await confirmBeforeRunning();
     if (!confirmed) {
       console.log("Operation cancelled.");
       process.exit(0);
     }
 
-    // Step 5: Run commit generators
+    // Step 6: Run commit generators
     await makeCommitsDay(numberOfDayCommits, dayOffset, startDate);
     await makeCommitsMonth(numberOfMonthCommits, weekOffset, startDate);
     await makeCommitsYear(numberOfYearCommits, startDate);
 
-    console.log("\nCommit generation completed successfully!");
+    // Step 7: Display commit statistics
+    displayCommitStatistics();
+
+    console.log("Commit generation completed successfully!");
   } catch (err) {
-    console.error("Error:", err.message);
+    console.error("\nError:", err.message);
+    console.error(
+      "\nIf you need help, check the README or verify:\\n" +
+      "  1. You're in a git repository directory\\n" +
+      "  2. Your .env file has valid values\\n" +
+      "  3. Your start date is not in the future\\n" +
+      "  4. You have write permissions in this directory"
+    );
     process.exit(1);
   }
 }

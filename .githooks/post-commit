@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Load environment variables
+if [ -f "$(git rev-parse --show-toplevel)/.env" ]; then
+    set -a
+    source "$(git rev-parse --show-toplevel)/.env"
+    set +a
+else
+    echo "Error: .env file not found"
+    exit 1
+fi
+
+# Get files changed in the last commit
+CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Build backup destination
+BACKUP_DEST="${BACKUP_USER}@${BACKUP_SERVER}:${BACKUP_PATH}"
+
+# Backup each changed file
+for file in $CHANGED_FILES; do
+    if [ -f "$file" ]; then
+        echo "Backing up: $file"
+        sshpass -p "${BACKUP_PASSWORD}" scp "$file" "${BACKUP_DEST}"
+        if [ $? -ne 0 ]; then
+            echo "Failed to backup: $file"
+        fi
+    fi
+done
