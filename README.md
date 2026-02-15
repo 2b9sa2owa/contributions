@@ -33,6 +33,30 @@ This Node.js script makes automated, backdated commits with custom messages and 
    npm install
    ```
 
+3. (Optional) Configure defaults via `.env` file:
+
+   A `.env.example` file is included showing all available configuration options. Copy it to create your own `.env` file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then edit `.env` to set default values that will be used if not provided via command line:
+
+   ```bash
+   DAY_COMMITS=7
+   MONTH_COMMITS=14
+   YEAR_COMMITS=21
+   DAY_OFFSET=100
+   WEEK_OFFSET=10
+   START_DATE=2025-01-01
+   TESTMODE=false
+   ```
+
+   Leave any variable empty to use the built-in defaults or let command-line arguments override them. The `.env` file is git-ignored, so your local configuration won't be committed.
+
+   **Test Mode:** Set `TESTMODE=true` to simulate commits without actually running git operations. This is useful for previewing what commits would be created before committing them to your repository.
+
 ## Usage
 
 You can run the script with default values:
@@ -41,26 +65,34 @@ You can run the script with default values:
 node index.js
 ```
 
-Or override the number of commits and offsets via command-line arguments:
+Or override the number of commits and offsets via command-line arguments (takes precedence over `.env`):
 
 ```bash
-node index.js [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset]
+node index.js [dayCommits] [monthCommits] [yearCommits] [dayOffset] [weekOffset] [startDate]
 ```
+
+**Precedence order:** Command-line arguments > `.env` file > Built-in defaults
 
 **Example:**
 
 ```bash
-node index.js 5 2 10 100 20
-# 5 day commits, 2 month commits, 10 year commits, dayOffset=100, weekOffset=20
+node index.js 5 2 10 100 20 2025-01-01
+# 5 day commits, 2 month commits, 10 year commits, dayOffset=100, weekOffset=20, starting from 2025-01-01
 ```
 
-If you omit arguments, defaults will be used.
+**Defaults:** If you omit arguments, the following defaults will be used:
+- `dayCommits`: 7 (7 commits all on the same day, each at a different random time)
+- `monthCommits`: 14 (14 commits all within the same week, each at a different random time of day)
+- `yearCommits`: 21 (21 commits randomly across the entire past year, each at a random time of day)
+- `dayOffset`: random (0-364)
+- `weekOffset`: random (0-51)
+- `startDate`: 5 years ago from today (commits placed relative to 5 years ago)
 
 ## How It Works
 
-- **Daily commits:** Generates a configurable number of commits on a specific day, each at a random hour, minute, and second.
-- **Monthly/weekly commits:** Generates commits in a specific week (month-like), each at a random time.
-- **Yearly commits:** Spreads commits randomly throughout the year, picking random weeks and days.
+- **Daily commits:** Generates a configurable number of commits on a specific day (determined by `dayOffset` from `startDate`), each at a random hour, minute, and second.
+- **Monthly/weekly commits:** Generates commits in a specific week (determined by `weekOffset` from `startDate`), each at a random time.
+- **Yearly commits:** Spreads commits randomly throughout the period from `startDate` to today, each at a random time.
 - **Commit messages:** Each commit message is generated using the `casual` library, combining random names, actions, and ticket numbers for realism.
 - **Commit process:** For each commit, the script writes a timestamp to `data.json`, stages the file, commits with a custom message and `--date`, and pushes to the repository.
 - **Error handling:** Each git operation is wrapped in try/catch blocks for robust error reporting.
